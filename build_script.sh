@@ -1,5 +1,5 @@
 #!/bin/bash
-SCRIPT=$(realpath $0)
+export SCRIPT=$(realpath ${BASH_SOURCE[0]})
 # 获取当前路径
 CURRENT_DIR=$(pwd)
 export PATH="$CURRENT_DIR/akb/src:$PATH"
@@ -40,6 +40,7 @@ build() {
 		CLANG_TRIPLE=aarch64-linux-android- \
 		$CC_ADDITION_FLAGS \
 		CC=$CC"
+	cd "$KENREL_SOURCE_DIR"
 	make ${args} gki_defconfig
 	make ${args}
 
@@ -50,10 +51,12 @@ build() {
 
 main() {
 	if [ ! "$ENV_SET" ]; then
-		env $(akb env expend_env | grep -v '^\s*#\|^\s*$' ) "ENV_SET=1" bash -c "$SCRIPT"
+		env $(akb env expend_env | grep -v '^\s*#\|^\s*$' ) bash -c "akb toolchains setup"
+		akb env expend_env > "$CURRENT_DIR/.env"
+		export ENV_SET=true
+		(. $SCRIPT;main)
 	else
-		akb env show
-		akb toolchains setup
+		. "$CURRENT_DIR/.env"
 		build
 	fi
 }
