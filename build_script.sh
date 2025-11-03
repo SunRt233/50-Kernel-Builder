@@ -61,13 +61,13 @@ build() {
 }
 
 main() {
-	akb env run akb toolchains setup > /dev/null || { echo "akb toolchains setup failed"; exit $?;  }
-	echo "注入PATH"
-	echo "$(akb env expend_env)" | while read line; do
-		echo "注入 $line"
-		eval "export $line"
-	done
-	echo "PATH=$PATH"
+	IGNORE=$(akb env run akb toolchains setup) || { echo "akb toolchains setup failed"; exit $?;  }
+	echo "注入 ENV"
+	INJECTED_ENV=$(echo "$(akb env expend_env)" | while read line; do
+		echo "export $line"
+	done)
+	eval "$INJECTED_ENV"
+	env
 	echo "开始构建"
 	build
 }
