@@ -15,12 +15,19 @@ jobs:
           # 👇 新增：系统信息输出（简洁美观）
       - name: System Info
         run: |
-          echo "🖥️  **System Configuration**"
+          echo "🖥️  System Configuration"
           echo "----------------------------"
-          echo "CPU   : $(nproc) cores ($(lscpu | grep 'Model name' | awk -F': ' '{gsub(/^[ \t]+|[ \t]+$/, \"\", $2); print $2}' | cut -c1-40))"
-          echo "Memory: $(free -h | awk '/^Mem:/ {print $2}') RAM (Free: $(free -h | awk '/^Mem:/ {print $7}'))"
-          echo "Disk  : $(df -h / | awk 'NR==2 {print $2, \"used out of\", $4, \"(\"$5\" used)\"}')"
-          echo "OS    : $(grep PRETTY_NAME /etc/os-release | cut -d\"=\" -f2 | tr -d '\"')"
+          CPU_MODEL=$(lscpu | awk -F: '/Model name/ && /CPU/ {gsub(/^ +| *$/,"",$2); print substr($2,1,40)}')
+          echo "CPU   : $(nproc) cores ($CPU_MODEL)"
+
+          eval $(free -h | awk '/^Mem:/ {printf "TOTAL=%s;AVAIL=%s;USED=%s",$2,$7,$3}')
+          echo "Memory: ${TOTAL:-?} RAM (Available: ${AVAIL:-?})"
+
+          eval $(df -h / | awk 'NR==2 {printf "TOTAL=%s;USED=%s;FREE=%s;USE=%s",$2,$3,$4,$5}')
+          echo "Disk  : ${USED:-?} used out of ${TOTAL:-?} (${USE:-?} used)"
+
+          OS_NAME=$(awk -F= '/^PRETTY_NAME/{gsub(/"/,"",$2);print $2}' /etc/os-release)
+          echo "OS    : $OS_NAME"
 
       - name: Install deps
         run: |
