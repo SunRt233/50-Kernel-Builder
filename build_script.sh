@@ -195,25 +195,69 @@ build() {
 
 packup() { 
 	echo "📦 打包工件"
-	echo "-----------------"
-	# 复制 $OUT_DIR 下第一层的文件到 $ARTIFACTS_DIR/kernel 排除 .o 结尾的文件
-	find "$OUT_DIR" -maxdepth 1 -type f ! -name "*.o" -exec cp {} "$ARTIFACTS_DIR/kernel" \;
+	echo "-------------"
+    
+    # 检查输出目录是否存在
+    if [ ! -d "$OUT_DIR" ]; then
+        echo "❌ 错误: 输出目录 $OUT_DIR 不存在"
+        return 1
+    fi
+    
+    echo "📁 创建工件目录..."
+    mkdir -p "$ARTIFACTS_DIR/kernel"
+    mkdir -p "$ARTIFACTS_DIR/AnyKernel3"
+    
+    # 复制 $OUT_DIR 下第一层的文件到 $ARTIFACTS_DIR/kernel/ 排除 .o 结尾的文件
+    echo "📋 复制内核文件..."
+    copied_files=$(find "$OUT_DIR" -maxdepth 1 -type f ! -name "*.o" -exec cp -v {} "$ARTIFACTS_DIR/kernel/" \; | wc -l)
+    echo "   成功复制 $copied_files 个文件到 $ARTIFACTS_DIR/kernel/"
+    
+    # 复制 $OUT_DIR/arch/$ARCH/boot/Image.gz 到 $ARTIFACTS_DIR/AnyKernel3/Image.gz
+    echo "📋 复制 Image.gz..."
+    IMAGE_GZ_PATH="$OUT_DIR/arch/$ARCH/boot/Image.gz"
+    if [ -f "$IMAGE_GZ_PATH" ]; then
+        cp "$IMAGE_GZ_PATH" "$ARTIFACTS_DIR/AnyKernel3/Image.gz"
+        echo "   成功复制 Image.gz 到 $ARTIFACTS_DIR/AnyKernel3/"
+    else
+        echo "❌ 错误: Image.gz 文件不存在于 $IMAGE_GZ_PATH"
+        return 1
+    fi
 
-	# 复制 $OUT_DIR/arch/$ARCH/boot/Image.gz 到 $ARTIFACTS_DIR/AnyKernel3/Image.gz
-	cp "$OUT_DIR/arch/$ARCH/boot/Image.gz" "$ARTIFACTS_DIR/AnyKernel3/Image.gz"
+    # 获取KernelSource仓库作者信息 格式"用户名 <邮件>"
+    echo "👤 获取版本信息..."
+    if git -C "$KERNEL_SOURCE_DIR" config user.name > /dev/null 2>&1 && \
+       git -C "$KERNEL_SOURCE_DIR" config user.email > /dev/null 2>&1; then
+        KERNEL_AUTHOR_INFO="$(git -C "$KERNEL_SOURCE_DIR" config user.name) <$(git -C "$KERNEL_SOURCE_DIR" config user.email)>"
+    else
+        KERNEL_AUTHOR_INFO="Unknown Author <unknown@example.com>"
+    fi
+    
+    # 获取KernelSource仓库提交hash
+    if git -C "$KERNEL_SOURCE_DIR" rev-parse --short HEAD > /dev/null 2>&1; then
+        KERNEL_HASH="$(git -C "$KERNEL_SOURCE_DIR" rev-parse --short HEAD)"
+    else
+        KERNEL_HASH="unknown"
+    fi
+    
+    # 获取AKB仓库commit hash
+    if git -C "$AKB_PATH" rev-parse --short HEAD > /dev/null 2>&1; then
+        AKB_HASH="$(git -C "$AKB_PATH" rev-parse --short HEAD)"
+    else
+        AKB_HASH="unknown"
+    fi
 
-	# 获取KernelSource仓库作者信息 格式"用户名 <邮件>"
-	KERNEL_AUTHOR_INFO="$(git -C "$KERNEL_SOURCE_DIR" config user.name) <$(git -C "$KERNEL_SOURCE_DIR" config user.email)>"
-	# 获取KernelSource仓库提交hash
-	KERNEL_HASH="$(git -C "$KERNEL_SOURCE_DIR" rev-parse --short HEAD)"
-	# 获取AKB仓库commit hash
-	AKB_HASH="$(git -C "$AKB_PATH" rev-parse --short HEAD)"
+    KERNEL_STRING="$(echo "$KERNEL_HASH by $KERNEL_AUTHOR_INFO. Build with akb $AKB_HASH" | sed 's/ /-/g')"
+    echo "   内核版本信息: $KERNEL_STRING"
 
-	KERNEL_STRING="$(echo "$KERNEL_HASH by $KERNEL_AUTHOR_INFO. Build with akb $AKB_HASH" | sed 's/ /-/g')"
-
-	# 配置AK3 kernel.string
-	sed -i "s/<KERNEL_STRING>/$KERNEL_STRING/g" "$ARTIFACTS_DIR/AnyKernel3/anykernel.sh"
-
+    # 配置AK3 kernel.string
+    echo "🔧 配置 AnyKernel3..."
+    if [ -f "$ARTIFACTS_DIR/AnyKernel3/anykernel.sh" ]; then
+        sed -i "s/<KERNEL_STRING>/$KERNEL_STRING/g" "$ARTIFACTS_DIR/AnyKernel3/anykernel.sh"
+        echo "✅ 打包完成!"
+    else
+        echo "❌ 错误: $ARTIFACTS_DIR/AnyKernel3/anykernel.sh 文件不存在"
+        return 1
+    fi
 }
 
 main() {
