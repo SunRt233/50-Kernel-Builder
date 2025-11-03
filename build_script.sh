@@ -19,7 +19,7 @@ prepare_kernel_source() {
 		echo "kernel source exists"
 		return 0
 	fi
-	git --recurse --depth=1 clone https://github.com/ztc1997/android_gki_kernel_5.10_common.git "$KERNEL_SOURCE_DIR" || { echo "Failed to clone kernel source repository"; return 1; }
+	git clone --recursive --depth=1  https://github.com/ztc1997/android_gki_kernel_5.10_common.git "$KERNEL_SOURCE_DIR" || { echo "Failed to clone kernel source repository"; return 1; }
 }
 
 prepare() {
