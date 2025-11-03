@@ -149,7 +149,7 @@ _build() {
     echo "🔨 开始内核编译"
     echo "----------------"
     
-	THREAD=$(nproc --all)
+	THREAD=$(nproc)
 
 	# 编译参数
 	args="-j$THREAD \
@@ -168,8 +168,8 @@ _build() {
     echo ""
     
 	cd "$KERNEL_SOURCE_DIR"
-	make "${args}" gki_defconfig
-	make "${args}"
+	make ${args} gki_defconfig || { echo "❌ 编译失败"; exit 1; }
+	make ${args} || { echo "❌ 编译失败"; exit 1; }
 
 	END_SEC=$(date +%s)
 	COST_SEC=$((END_SEC - START_SEC))
