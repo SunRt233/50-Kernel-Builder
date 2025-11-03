@@ -1,5 +1,5 @@
 #!/bin/bash
-export SCRIPT=$(realpath ${BASH_SOURCE[0]})
+# export SCRIPT=$(realpath ${BASH_SOURCE[0]})
 # 获取当前路径
 CURRENT_DIR=$(pwd)
 export PATH="$CURRENT_DIR/akb/src:$PATH"
@@ -7,9 +7,17 @@ export REPO_DIR="$CURRENT_DIR"
 KENREL_SOURCE_DIR="$CURRENT_DIR/kernel_source"
 
 prepare_akb() {
+	if [ -d "$CURRENT_DIR/akb" ]; then
+		echo "akb exists"
+		return
+	fi
 	git clone https://git.yunzhu.host/SunRt233/AKB.git "$CURRENT_DIR/akb"
 }
 prepare_kernel_source() {
+	if [ -d "$KENREL_SOURCE_DIR" ]; then
+		echo "kernel source exists"
+		return
+	fi
 	git clone https://github.com/ztc1997/android_gki_kernel_5.10_common.git "$KENREL_SOURCE_DIR"
 }
 prepare() {
@@ -50,13 +58,9 @@ build() {
 }
 
 main() {
-	if [ ! "$ENV_SET" ]; then
-		env $(akb env expend_env | grep -v '^\s*#\|^\s*$' ) bash -c "akb toolchains setup"
-		akb env expend_env > "$CURRENT_DIR/.env"
-		export ENV_SET=true
-		(. $SCRIPT;main)
-	else
-		. "$CURRENT_DIR/.env"
-		build
-	fi
+	akb env run akb toolchains setup || { echo "akb toolchains setup failed"; exit $?;  }
+	echo "$(akb env expend_env)" | while read line; do
+		export $line
+	done
+	build
 }
