@@ -61,12 +61,17 @@ jobs:
         run: |
           ./build_script.sh packup
 
-      - name: Upload artifacts
-        if: success() || failure()
+      - name: Upload kernel artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: "output"
-          path: out/*
+          name: "kernel.zip"
+          path: artifacts/kernel/*
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: "AK3-flash.zip"
+          path: artifacts/AnyKernel3/*
 
       - name: Upload full log
         if: success() || failure()

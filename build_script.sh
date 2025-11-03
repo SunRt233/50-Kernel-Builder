@@ -168,12 +168,12 @@ _build() {
     echo ""
     
 	cd "$KERNEL_SOURCE_DIR"
-	make ${args} gki_defconfig
-	make ${args}
+	make "${args}" gki_defconfig
+	make "${args}"
 
 	END_SEC=$(date +%s)
-	COST_SEC=$(($END_SEC - $START_SEC))
-	echo "⏱️  编译耗时: $(($COST_SEC / 60))分$(($COST_SEC % 60))秒"
+	COST_SEC=$((END_SEC - START_SEC))
+	echo "⏱️  编译耗时: $((COST_SEC / 60))分$((COST_SEC % 60))秒"
     
     echo ""
 }
@@ -182,9 +182,9 @@ build() {
     echo "⚙️  配置构建环境"
     echo "-----------------"
     
-	IGNORE=$(akb env run akb toolchains setup) || { echo "akb toolchains setup failed"; exit $?;  }
+	_IGNORE=$(akb env run akb toolchains setup) || { exit_code=$?;echo "akb toolchains setup failed"; exit $exit_code; }
 	echo "注入 ENV"
-	INJECTED_ENV=$(echo "$(akb env expend_env)" | while read line; do
+	INJECTED_ENV=$(akb env expand_env | while read -r line; do
 		echo "export $line"
 	done)
 	eval "$INJECTED_ENV"
@@ -223,13 +223,11 @@ main() {
 		prepare
 		build
 	else
-		for arg in "$@"; do
-			if [[ " ${EXPORT_CMDS[*]} " =~ " ${arg} " ]]; then
-				$arg
-			else
-				echo "Invalid argument: $arg"
-			fi
-		done
+		if [[ "${EXPORT_CMDS[*]}" =~ $1 ]]; then
+			"$1"
+		else
+			echo "Invalid argument: $1"
+		fi
 	fi
 }
 
