@@ -3,31 +3,19 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    # 允许手动触发构建
 
 jobs:
-  build-and-deploy:
+  Build:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses:
-          actions/checkout@master
+        uses: actions/checkout@master
 
-          # 👇 新增：系统信息输出（简洁美观）
-      - name: System Info
+      - name: Check System
         run: |
-          echo "🖥️  System Configuration"
-          echo "----------------------------"
-          CPU_MODEL=$(lscpu | awk -F: '/Model name/ && /CPU/ {gsub(/^ +| *$/,"",$2); print substr($2,1,40)}')
-          echo "CPU   : $(nproc) cores ($CPU_MODEL)"
-
-          eval $(free -h | awk '/^Mem:/ {printf "TOTAL=%s;AVAIL=%s;USED=%s",$2,$7,$3}')
-          echo "Memory: ${TOTAL:-?} RAM (Available: ${AVAIL:-?})"
-
-          eval $(df -h / | awk 'NR==2 {printf "TOTAL=%s;USED=%s;FREE=%s;USE=%s",$2,$3,$4,$5}')
-          echo "Disk  : ${USED:-?} used out of ${TOTAL:-?} (${USE:-?} used)"
-
-          OS_NAME=$(awk -F= '/^PRETTY_NAME/{gsub(/"/,"",$2);print $2}' /etc/os-release)
-          echo "OS    : $OS_NAME"
+          ./build_script.sh check_system
 
       - name: Install deps
         run: |
@@ -63,14 +51,26 @@ jobs:
       - name: Prepare
         run: |
           chmod +x build_script.sh
-          (. ./build_script.sh ;prepare)
+          ./build_script.sh prepare
 
       - name: Build
         run: |
-          (. ./build_script.sh ;main)
+          ./build_script.sh build
+
+      - name: Packup
+        run: |
+          ./build_script.sh packup
 
       - name: Upload artifacts
+        if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
           name: "output"
           path: out/*
+
+      - name: Upload full log
+        if: success() || failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: "full-log"
+          path: full.log
