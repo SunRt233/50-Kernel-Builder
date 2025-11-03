@@ -63,5 +63,6 @@ main() {
 		export $line
 	done
 	akb env show
+	echo "$PATH"
 	build
 }
