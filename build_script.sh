@@ -117,7 +117,9 @@ _prepare_kernel_source() {
 		echo "kernel source exists"
 		return 0
 	fi
-	git clone --recursive --depth=1 "$KERNEL_REPO_URL" "$KERNEL_SOURCE_DIR" || { echo "Failed to clone kernel source repository"; return 1; }
+	git clone --recursive "$KERNEL_REPO_URL" "$KERNEL_SOURCE_DIR" && \
+	git -C "$KERNEL_SOURCE_DIR" checkout 4ac28c457f14efc74e9814efb3b962268e1b741f || \
+	{ echo "Failed to clone or checkout kernel source" ;return 1; }
 }
 
 _prepare_ak3() {
